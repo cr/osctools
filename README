@@ -1,0 +1,12 @@
+# OSC Tools
+# by Christiane Ruetten, cr at 23bit.net
+
+Just a bunch of undocumented tools converting input into OSC packets,
+written for the GPN11 Fluxus visuals live coding performance.
+
+So far we have:
+
+ osc_midibeat.py - detects and streams Traktor beat sync messages
+
+ osc_accel.py - queries and streams OpenChronos acceleration sensor data
+
