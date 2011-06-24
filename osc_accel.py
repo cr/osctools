@@ -9,6 +9,7 @@ import time
 from math import sqrt
 
 IpAddress = "127.0.0.1"
+UdpPort = 1234
 UsbDevice = "/dev/tty.usbmodem001"
 
 ####################################################################################################
@@ -61,9 +62,10 @@ def send_osc():
 	global xold, yold, zold, told
 
 	# convert raw sensor data and apply mild filter
+	# no idea why z is shifted by -0.5
 	xval =  convert_acceldata( rawdata[4] ) * 0.2 + xold * 0.8
 	yval =  convert_acceldata( rawdata[5] ) * 0.2 + yold * 0.8
-	zval =  convert_acceldata( rawdata[6] ) * 0.2 + zold * 0.8
+	zval =  (convert_acceldata( rawdata[6] ) + 0.5) * 0.2 + zold * 0.8
 
 	# differentiate da/dt
 	dxdt = (xval - xold) / (now - told)
@@ -88,7 +90,7 @@ def send_osc():
 
 # open osc connection
 try:
-	target = liblo.Address( IpAddress, 1234 )
+	target = liblo.Address( IpAddress, UdpPort )
 except liblo.AddressError, err:
 	print str( err )
 	sys.exit()
