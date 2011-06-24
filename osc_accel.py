@@ -62,7 +62,7 @@ def send_osc():
 	global xold, yold, zold, told
 
 	# convert raw sensor data and apply mild filter
-	# no idea why z is shifted by -0.5
+	# z is shifted by ~g/2
 	xval =  convert_acceldata( rawdata[4] ) * 0.2 + xold * 0.8
 	yval =  convert_acceldata( rawdata[5] ) * 0.2 + yold * 0.8
 	zval =  (convert_acceldata( rawdata[6] ) + 0.41) * 0.2 + zold * 0.8
