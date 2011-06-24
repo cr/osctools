@@ -8,8 +8,7 @@ from threading import Timer
 import time
 from math import sqrt
 
-IpAddress = "94.45.232.104"
-#IpAddress = "127.0.0.1"
+IpAddress = "127.0.0.1"
 UsbDevice = "/dev/tty.usbmodem001"
 
 ####################################################################################################
@@ -75,7 +74,7 @@ def send_osc():
 	difflen = sqrt ( dxdt*dxdt + dydt*dydt + dzdt*dzdt )
 
 	# send out everything to Fluxus as float string
-	#liblo.send( target, "/sensor", str( xval ), str( yval ), str( zval ), str( dxdt ), str( dydt ), str( dzdt ), str( difflen ) )
+	liblo.send( target, "/sensor", str( xval ), str( yval ), str( zval ), str( dxdt ), str( dydt ), str( dzdt ), str( difflen ) )
 
 	print >> sys.stderr, "x: " + str( xval ) + " y: " + str( yval ) + " z: " + str( zval ) + " dx/dt: " + str( dxdt ) + " dy/dt: " + str( dydt ) + " dz/dt: " + str( dzdt ) + " |d/dt|: " + str( difflen )
 
