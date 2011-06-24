@@ -6,6 +6,11 @@ import liblo
 import sys
 from threading import Timer
 import time
+from math import sqrt
+
+IpAddress = "94.45.232.104"
+#IpAddress = "127.0.0.1"
+UsbDevice = "/dev/tty.usbmodem001"
 
 ####################################################################################################
 
@@ -22,42 +27,91 @@ def portwrite( cmd ):
 		response += bytearray( port.read( response[2]-3 ) )
 	return response
 
+def bit_value( val, bit_nr ):
+	return ( val >> bit_nr ) & 1
+
+def convert_acceldata( raw ):	
+	# Conversion values from data to mgrav taken
+	# from CMA3000-D0x datasheet (rev 0.4, table 4)
+	mgrav_per_bit = [ 18, 36, 71, 143, 286, 571, 1142 ]
+
+	# fix signedness: uint8 to int8
+	if raw > 128:
+		sign = -1
+		absraw = -raw
+	else:
+		sign = 1
+		absraw = raw
+
+	mgrav = 0
+	for n in range( 7 ):
+		mgrav += mgrav_per_bit[n] * bit_value( absraw, n )
+
+	return sign * mgrav / 1000.0
+
 def send_osc():
+	# re-schedule myself
 	Timer( 1.0/25, send_osc, () ).start()
 
-	data = portwrite( cmd_GetData() )
+	rawdata = portwrite( cmd_GetData() )
+	# only regard response with data
+	if rawdata[3] != 1: return
 
-	xval =  data[4]
-	yval =  data[5]
-	zval =  data[6]
-	if xval > 128:
-		xval -= 256
-	if yval > 128:
-		yval -= 256
-	if zval > 128:
-		zval -= 256
+	now = time.time()
 
-	if data[3] == 1:
-		liblo.send( target, "/sensor", xval, yval, zval )
-#		print >> sys.stderr, "x: " + str( xval ) + " y: " + str( yval ) + " z: " + str( zval )
+	global xold, yold, zold, told
+
+	# convert raw sensor data and apply mild filter
+	xval =  convert_acceldata( rawdata[4] ) * 0.2 + xold * 0.8
+	yval =  convert_acceldata( rawdata[5] ) * 0.2 + yold * 0.8
+	zval =  convert_acceldata( rawdata[6] ) * 0.2 + zold * 0.8
+
+	# differentiate da/dt
+	dxdt = (xval - xold) / (now - told)
+	dydt = (yval - yold) / (now - told)
+	dzdt = (zval - zold) / (now - told)
+
+	# length of difference vector
+	difflen = sqrt ( dxdt*dxdt + dydt*dydt + dzdt*dzdt )
+
+	# send out everything to Fluxus as float string
+	#liblo.send( target, "/sensor", str( xval ), str( yval ), str( zval ), str( dxdt ), str( dydt ), str( dzdt ), str( difflen ) )
+
+	print >> sys.stderr, "x: " + str( xval ) + " y: " + str( yval ) + " z: " + str( zval ) + " dx/dt: " + str( dxdt ) + " dy/dt: " + str( dydt ) + " dz/dt: " + str( dzdt ) + " |d/dt|: " + str( difflen )
+
+	# store previous values for next call
+	xold = xval
+	yold = yval
+	zold = zval
+	told = now
 
 ####################################################################################################
 
+# open osc connection
 try:
-	target = liblo.Address( "127.0.0.1", 1234 )
-	#target = liblo.Address( "10.10.10.2", 1234 )
+	target = liblo.Address( IpAddress, 1234 )
 except liblo.AddressError, err:
 	print str( err )
 	sys.exit()
 
-#port = serial.Serial( "/dev/tty.usbmodem001", 115200, timeout=1 )
-#portwrite ( cmd_StartAP() )
+# open serial connection to Chronos AP
+port = serial.Serial( UsbDevice, 115200, timeout=1 )
+portwrite ( cmd_StartAP() )
 
+# prepare some globals
+global xold, yold, zold, told
+xold = 0
+yold = 0
+zold = 0
+told = time.time()
+
+# call self-rescheduling function
 send_osc()
 
+# and wait forever
 while 1:
 	time.sleep( 1 )
-#	send_osc()
 
+# wonthappen
 port.close()
 
