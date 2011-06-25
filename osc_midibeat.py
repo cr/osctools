@@ -12,6 +12,9 @@ import time
 import liblo
 import sys
 
+IpAddress = "127.0.0.1"
+UdpPort = 1234
+
 INPUT=0
 OUTPUT=1
 
@@ -49,8 +52,7 @@ def osc_beat():
 	del midi_in
     
 try:
-	target = liblo.Address( "127.0.0.1", 1234 )
-	#target = liblo.Address( "10.10.10.2", 1234 )
+	target = liblo.Address( IpAddress, UdpPort )
 except liblo.AddressError, err:
 	print str( err )
 	sys.exit()

@@ -10,7 +10,9 @@ from math import sqrt
 
 IpAddress = "127.0.0.1"
 UdpPort = 1234
-UsbDevice = "/dev/tty.usbmodem001"
+
+#UsbDevice = "/dev/tty.usbmodem001"
+UsbDevice = "/dev/ttyUSB0"
 
 ####################################################################################################
 
@@ -47,11 +49,11 @@ def convert_acceldata( raw ):
 	for n in range( 7 ):
 		mgrav += mgrav_per_bit[n] * bit_value( absraw, n )
 
-	return sign * mgrav / 1000.0
+	return sign * int( mgrav ) / 1000.0
 
 def send_osc():
 	# re-schedule myself
-	Timer( 1.0/25, send_osc, () ).start()
+	Timer( 1.0/40, send_osc, () ).start()
 
 	rawdata = portwrite( cmd_GetData() )
 	# only regard response with data
@@ -63,9 +65,9 @@ def send_osc():
 
 	# convert raw sensor data and apply mild filter
 	# z is shifted by ~g/2
-	xval =  convert_acceldata( rawdata[4] ) * 0.2 + xold * 0.8
-	yval =  convert_acceldata( rawdata[5] ) * 0.2 + yold * 0.8
-	zval =  (convert_acceldata( rawdata[6] ) + 0.41) * 0.2 + zold * 0.8
+	xval = convert_acceldata( rawdata[4] ) * 0.2 + xold * 0.8
+	yval = convert_acceldata( rawdata[5] ) * 0.2 + yold * 0.8
+	zval = (convert_acceldata( rawdata[6] ) + 0.42) * 0.2 + zold * 0.8
 
 	# differentiate da/dt
 	dxdt = (xval - xold) / (now - told)
