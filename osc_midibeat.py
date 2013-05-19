@@ -10,6 +10,7 @@
 
 import time
 import sys
+import signal
 import socket
 import pygame
 import pygame.midi
@@ -79,6 +80,7 @@ except err:
 
 try:
 	osc_beat()
-except:
-	pygame.midi.quit()
+except KeyboardInterrupt:
 	target.close()
+	print "Bye!"
+
