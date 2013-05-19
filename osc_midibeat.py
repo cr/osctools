@@ -4,7 +4,9 @@
 #  -> Preferences / Controller Manager
 #  -> Device: Generic MIDI (Traktor Virtual I/O)
 #     - Add out / Output / Beat Phase Monitor
+#     - Add out / Deck Coomon / Beat Phase (Traktor 2+)
 #       - Assignment: Device Target
+#       - Choose any Midi channel
 
 import array
 import time
@@ -46,7 +48,6 @@ def osc_beat():
 		value = midi_data[0][0][2]
 		if value < prev:
 			time.sleep( 0.1 ) # poor girl's sync
-			#liblo.send( target, "/baem", "clock" )
 			packet = "/1/baem\x00,\x00\x00\x00"
 			target.sendto( packet, ( IpAddress, UdpPort ) )
 			sys.stdout.write( "baem! " )
