@@ -10,3 +10,5 @@ So far we have:
 
  osc_accel.py - queries and streams OpenChronos acceleration sensor data
 
+ bm.py - early audio signal processing tests aimed towards beatmatching
+
