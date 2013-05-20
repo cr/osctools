@@ -162,7 +162,7 @@ def main():
 	bars = [ Bar( (i*2+30,20),(1,360) ) for i in xrange(260) ]
 
 	# the audio object
-	a = MonoDiffStream( device=2 )
+	a = MonoDiffStream()
 	avg = 0.
 
 	# main event loop syncs to incoming audio chunks
@@ -188,7 +188,7 @@ def main():
 		bars[1].set( logavg )
 		bars[1].update()
 		bars[2].fgcolor = pygame.Color( 255,150,255,220 )
-		bars[2].set( change )
+		bars[2].set( 0.5*change )
 		bars[2].update()
 
 		# use some bars for low-passed fft 
