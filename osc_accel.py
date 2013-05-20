@@ -8,11 +8,11 @@ from threading import Timer
 import time
 from math import sqrt
 
-IpAddress = "127.0.0.1"
+IpAddress = "10.0.0.2"
 UdpPort = 1234
 
-#UsbDevice = "/dev/tty.usbmodem001"
-UsbDevice = "/dev/ttyUSB0"
+UsbDevice = "/dev/tty.usbmodem001"
+#UsbDevice = "/dev/ttyUSB0"
 
 ####################################################################################################
 
