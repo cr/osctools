@@ -112,28 +112,34 @@ class MonoDiffStream( object ):
 			#h = np.hamming(len(mono))
 			h = np.hanning(len(mono))
 			fft = np.fft.rfft( mono * h, axis=0)[0:len(mono)/2]
-			logfft = 0.4*np.log10(1.+10.*np.abs(fft))
 
 			# fft of unfiltered signal
 			ufft = np.fft.rfft( unfiltered * h, axis=0)[0:len(unfiltered)/2]
-			logufft = 0.4*np.log10(1.+10.*np.abs(ufft))
 
-			# psychoacoustic binning per octave
-			compressed = []
-			width = 1
-			while width <= len(logfft)/2:
-				offset = width-1
-				compressed.append( np.sum( logfft[offset:offset+width] ) / width )
-				width *= 2
-			compressed = np.array( compressed, dtype=np.float32 )
-			
-			# smoothing
-			try:
-				compressed = old*0.3+compressed*0.7
-			except:
-				old = compressed
+			yield mono, diff, ufft, fft
 
-			yield mono, diff, logfft, logufft
+def binning( fft, start=0 ):
+	# psychoacoustic binning per octave
+	n = int(np.ceil(np.log2(len(fft)-start)))
+	for bin in [fft[start+2**x-1:start+2**(x+1)-1] for x in xrange(n)]:
+		yield bin
+
+def avgbin( fft, offt, start=0 ):
+	fftbins = binning( fft, start=start )
+	offtbins = binning( offt, start=start )
+	for bin in fftbins:
+		obin = offtbins.next()
+		avg = np.average(bin)
+		yield avg
+
+def fluxbin( fft, offt, start=0 ):
+	fftbins = binning( fft, start=start )
+	offtbins = binning( offt, start=start )
+	for bin in fftbins:
+		obin = offtbins.next()
+		diffbin = bin - obin
+		flux = np.average((np.abs(-diffbin)+diffbin)/2.0)
+		yield flux
 
 def main():
 
@@ -143,7 +149,7 @@ def main():
 	use_fs = False
 
 	# size for windowed mode
-	screendim = 600, 400
+	screendim = 1200, 200
 
 	if use_fs and pygame.display.list_modes():
 		fs = True
@@ -155,11 +161,11 @@ def main():
 
 	pygame.display.set_caption( "Beat Monitor" )
 	clock = pygame.time.Clock()
-	bgcolor = pygame.Color( 10, 20, 30, 255 )
+	bgcolor = pygame.Color( 20, 40, 60, 255 )
 	screen.fill( bgcolor )
 
 	# some bars
-	bars = [ Bar( (i*2+30,20),(1,360) ) for i in xrange(260) ]
+	bars = [ Bar( (i*4+30,20),(3,170) ) for i in xrange(280) ]
 
 	# the audio object
 	a = MonoDiffStream()
@@ -167,6 +173,32 @@ def main():
 
 	# main event loop syncs to incoming audio chunks
 	for m,d,f,t in a: # reading audio is blocking
+		try: of
+		except: 
+			of = f
+			ot = t
+
+		avgbins = [x for x in avgbin( f, of, start=0 )]
+		fluxbins = [x for x in fluxbin( f, of, start=0 )]
+		avgbins = 2.*np.log10(1.+10.*np.abs(avgbins))
+		fluxbins = 0.5*np.log10(1.+10.*np.abs(fluxbins))
+		try:
+			avgbins = 0.7*oavgbins + 0.3*avgbins
+			ofluxbins = 0.7*ofluxbins + 0.3*fluxbins
+		except:
+			pass
+		oavgbins = avgbins
+		ofluxbins = fluxbins
+
+		logf = 0.4*np.log10(1.+10.*np.abs(f))
+		logt = 0.4*np.log10(1.+10.*np.abs(t))
+		try:
+			logf = np.maximum( 0.9*ologf, logf )
+			logt = np.maximum( 0.9*ologt, logt )
+		except:
+			pass
+		ologf = logf
+		ologt = logt
 
 		monoenergy = np.average(np.square(m))
 		diffenergy = np.average(np.square(d))
@@ -176,8 +208,17 @@ def main():
 
 		change =  1.-abs((avg-energy)/avg)
 
-		logenergy = 20.*np.log10(1.+10.*energy)
+		logenergy = 10.*np.log10(1.+10.*energy)
 		logavg = 20.*np.log10(1.+10.*avg)
+
+		try:
+			logenergy = max( 0.8*oldenergy,logenergy )
+		except:
+			pass
+		oldenergy = logenergy
+
+
+
 	
 		#print "%.8f  %.8f   %.8f   %.8f   %.8f" % (energy, logenergy, avg, logavg, change)
 
@@ -191,23 +232,40 @@ def main():
 		bars[2].set( 0.5*change )
 		bars[2].update()
 
-		# use some bars for low-passed fft 
-		try:	
-			for i,v in enumerate(f):
-				bars[i+3].fgcolor = pygame.Color( 255,220,220,220 )
-				bars[i+3].set(v)
-				bars[i+3].update()
+		try:
+			for i,v in enumerate(avgbins):
+				bars[i+0].fgcolor = pygame.Color( 127,255,63,220 )
+				bars[i+0].set(v)
+				bars[i+0].update()
 		except IndexError:
 			break
 
-		# use some bars for unfiltered fft
 		try:
-			for i,v in enumerate(t):
-				bars[i+131].fgcolor = pygame.Color( 220,220,255,220 )
-				bars[i+131].set(v)
-				bars[i+131].update()
+			for i,v in enumerate(fluxbins):
+				bars[i+10].fgcolor = pygame.Color( 63,255,127,220 )
+				bars[i+10].set(v)
+				bars[i+10].update()
 		except IndexError:
 			break
+
+		# use some bars for unfiltered fft 
+		#try:	
+		#	for i,v in enumerate(ologf):
+		#		bars[i+3].fgcolor = pygame.Color( 255,220,220,220 )
+		#		bars[i+3].set(v)
+		#		bars[i+3].update()
+		#except IndexError:
+		#	break
+
+		# use some bars for filtered fft
+		try:
+			for i,v in enumerate(ologt):
+				bars[i+20].fgcolor = pygame.Color( 255,127,63,220 )
+				bars[i+20].set(v)
+				bars[i+20].update()
+		except IndexError:
+			break
+
 
 		for b in bars:
 			b.blit( screen )
