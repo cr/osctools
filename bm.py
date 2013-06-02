@@ -138,7 +138,8 @@ def fluxbin( fft, offt, start=0 ):
 	for bin in fftbins:
 		obin = offtbins.next()
 		diffbin = bin - obin
-		flux = np.average((np.abs(-diffbin)+diffbin)/2.0)
+		num = np.sum(diffbin>0.)
+		flux = np.sum((np.abs(-diffbin)+diffbin)/2.0)
 		yield flux
 
 def main():
@@ -146,7 +147,7 @@ def main():
 	pygame.init()
 
 	#fullscreen mode
-	use_fs = False
+	use_fs = True
 
 	# size for windowed mode
 	screendim = 1200, 200
@@ -165,7 +166,7 @@ def main():
 	screen.fill( bgcolor )
 
 	# some bars
-	bars = [ Bar( (i*4+30,20),(3,170) ) for i in xrange(280) ]
+	bars = [ Bar( (i*8+30,20),(6,170) ) for i in xrange(150) ]
 
 	# the audio object
 	a = MonoDiffStream()
@@ -180,11 +181,11 @@ def main():
 
 		avgbins = [x for x in avgbin( f, of, start=0 )]
 		fluxbins = [x for x in fluxbin( f, of, start=0 )]
-		avgbins = 2.*np.log10(1.+10.*np.abs(avgbins))
-		fluxbins = 0.5*np.log10(1.+10.*np.abs(fluxbins))
+		avgbins = 0.6*np.log10(1.+10.*np.abs(avgbins))
+		fluxbins = 0.2*np.log10(1.+10.*np.abs(fluxbins))
 		try:
-			avgbins = 0.7*oavgbins + 0.3*avgbins
-			ofluxbins = 0.7*ofluxbins + 0.3*fluxbins
+			avgbins = np.maximum( 0.95*oavgbins, avgbins )
+			ofluxbins = np.maximum( 0.95*ofluxbins, fluxbins )
 		except:
 			pass
 		oavgbins = avgbins
@@ -193,12 +194,19 @@ def main():
 		logf = 0.4*np.log10(1.+10.*np.abs(f))
 		logt = 0.4*np.log10(1.+10.*np.abs(t))
 		try:
-			logf = np.maximum( 0.9*ologf, logf )
-			logt = np.maximum( 0.9*ologt, logt )
+			logf = np.maximum( 0.95*ologf, logf )
+			logt = np.maximum( 0.95*ologt, logt )
 		except:
 			pass
 		ologf = logf
 		ologt = logt
+
+		alldiff = np.abs(f)-np.abs(of)
+		possel = (alldiff>0.)
+		posflux = np.sum(possel*alldiff) / np.sum(possel)
+		#print type(posflux), posflux
+	
+		#fluxx = 0.4 * np.log10(1.+10.*np.abs(fluxx))
 
 		monoenergy = np.average(np.square(m))
 		diffenergy = np.average(np.square(d))
@@ -217,9 +225,6 @@ def main():
 			pass
 		oldenergy = logenergy
 
-
-
-	
 		#print "%.8f  %.8f   %.8f   %.8f   %.8f" % (energy, logenergy, avg, logavg, change)
 
 		bars[0].fgcolor = pygame.Color( 255,255,150,220 )
@@ -232,9 +237,13 @@ def main():
 		bars[2].set( 0.5*change )
 		bars[2].update()
 
+		#bars[8].fgcolor = pygame.Color( 127,255,127,255 )
+		#bars[8].set( posflux/10. )
+		#bars[8].update()
+
 		try:
 			for i,v in enumerate(avgbins):
-				bars[i+0].fgcolor = pygame.Color( 127,255,63,220 )
+				bars[i+0].fgcolor = pygame.Color( 127,127,255,255 )
 				bars[i+0].set(v)
 				bars[i+0].update()
 		except IndexError:
@@ -242,7 +251,7 @@ def main():
 
 		try:
 			for i,v in enumerate(fluxbins):
-				bars[i+10].fgcolor = pygame.Color( 63,255,127,220 )
+				bars[i+10].fgcolor = pygame.Color( 255,127,127,255 )
 				bars[i+10].set(v)
 				bars[i+10].update()
 		except IndexError:
@@ -260,7 +269,7 @@ def main():
 		# use some bars for filtered fft
 		try:
 			for i,v in enumerate(ologt):
-				bars[i+20].fgcolor = pygame.Color( 255,127,63,220 )
+				bars[i+20].fgcolor = pygame.Color( 255,192,63,255 )
 				bars[i+20].set(v)
 				bars[i+20].update()
 		except IndexError:
